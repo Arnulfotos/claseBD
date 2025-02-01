@@ -1,0 +1,580 @@
+/*
+-- DESACTIVAR SAFE UPDATE---
+SET SQL_SAFE_UPDATES = 0;
+
+ --- CREAR TABLA ---
+CREATE TABLE customer (
+	id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL
+);
+
+--- EDITAR TABLAS ---
+    AGREGAR COLUMNA // ALTER TABLE customer ADD phone VARCHAR(20);
+    BORRAR COLUMNA // ALTER TABLE customer DROP COLUMN phone;
+    EDITAR COLUMNA // ALTER TABLE customer MODIFY COLUMN email VARCHAR(200) NOT NULL;
+    
+--- BORRAR TABLAS ---
+DROP TABLE something;
+
+--- INGRESAR DATOS ---
+INGRESAR UN DATO // INSERT INTO customer(name, email) VALUES ('Francisco', 'francisco@gmail.com');
+INGRESAR VARIOS DATOS // INSERT INTO customer(name, email) VALUES ('Juan', 'juan@gmail.com'),('Ana', 'ana@gmail.com'), ('Hector', 'hector@gmail.com');
+
+
+--- LEER DATOS ---
+TODOS LOS DATOS // SELECT * FROM customer
+PARTE DE LOS DATOS // SELECT * FROM customer LIMIT 0(INICIO DE INDEX),2(CANTIDAD DE DATOS); 
+CIERTAS COLUMNAS // SELECT name FROM customer;
+AGREGA DATA FIJA EN CONSULTA // SELECT 'Algo', 3, name FROM customer;
+CONVIERTE LOS DATOS EN MAYUSCULAS // SELECT  UPPER(name) FROM customer;
+CONVIERTE LOS DATOS EN MINUSCULAS // SELECT  LOWER(name) FROM customer;
+CUENTA LOS CARACTERES EN UNA CELDA Y PON UN ALIAS A ESA COLUMNA // SELECT name, LENGTH(name) as 'Longitud' FROM customer;
+
+
+--- ORDENAR DATOS --
+ORDENAS ASCENDENTE // SELECT * FROM customer ORDER BY id;
+DESCENDENTE // SELECT * FROM customer ORDER BY id DESC;
+PARA QUE NO ORDENE POR ASCII, Y TENER SEGUNDO ORDENAMIENTO // SELECT * FROM customer ORDER BY lower(name), email;
+
+--- FILTRAR DATOS --
+SELECT * FROM customer WHERE LOWER(name) = 'francisco';
+SELECT * FROM customer WHERE LOWER(name) = 'francisco' OR name = 'Ana';
+SELECT * FROM customer WHERE LOWER(name) = 'francisco' AND name = 'Ana';
+SELECT * FROM customer WHERE LENGTH(name) > 4 ORDER BY name DESC;
+
+---MODIFICAR DATOS---
+UPDATE customer SET name = 'Pancho' WHERE id = 1;
+UPDATE customer SET name = UPPER(name) WHERE name = 'Ana';
+UPDATE customer SET name = 'Frank', email = 'francisco58@gmail.com' WHERE id =1;
+Diferentes rows// UPDATE customer SET name =  UPPER(name) WHERE id IN(2,4,5)
+
+---ELIMINAR DE DATOS---
+CUIDADO CON EL USO DE DELETE FROM, SIEMPRE USAR ID O INICIA CON UN SELECT * FROM
+
+DELETE FROM customer WHERE id =1
+DESTRUYE TODO // TRUNCATE TABLE customer
+
+
+---AGRUPAR DATOS---
+SELECT name, COUNT(*) AS cantidad FROM customer GROUP BY LOWER(name);
+
+
+----------------- COMO MANTENER INTEGRIDAD (CONSTRAINS) ----------------------
+
+PRIMARY KEY -> CREATE TABLE city (id INT AUTO_INCREMENT PRIMRAY KEY <O puede ser BIGINT>, name VARCHAR(50))
+// Viene por defecto NOT NULL Y UNIQUE
+
+NOT NULL -> ALTER TABLE city CHANGE COLUMN name name VARCHAR(50) NOT NULL
+
+UNIQUE -> ALTER TABLE city ADD UNIQUE (name)
+
+DEFAULT -> ALTER TABLE customer ADD COLUMN currency VARCHAR(3) DEFAULT 'MXN'
+
+ALTER TABLE customer ADD COLUMN created_at DATETIME;
+ALTER TABLE customer ALTER created_at SET DEFAULT CURRENT_TIMESTAMP();
+
+INDEX -> CREATE INDEX idx_name ON customer(name);
+ALTER TABLE customer DROP INDEX idx_name;
+
+CHECK -> ALTER TABLE customer ADD CONSTRAINT check_name
+CHECK(name <> 'abc');
+
+SHOW CREATE TABLE
+
+ALTER TABLE customer DROP CONSTRAINT check_name;
+
+
+FOREIGN KEYS -> ALTER TABLE customer ADD COLUMN city_id INT;
+
+ALTER TABLE customer
+ADD CONSTRAIN fk_city
+FOREIGN KEY(city_id) REFERENCE city(id)
+
+
+--- INNER JOIN ---
+
+SELECT * FROM customer INNER JOIN city ON city.id = customer.city_id
+
+SELECT customer.name, city.name FROM customer
+INNER JOIN city ON city.id = customer.city_id;
+
+
+SELECT customer.name, c.name as 'city' FROM customer
+INNER JOIN city as c ON c.id = customer.city_id;
+
+
+--- LEFT JOIN ---
+
+SELECT * FROM customer
+LEFT JOIN city ON city.id = customer.city_id;
+
+SELECT customer.name,
+IFNULL(city.name, 'Sin ciudad') as 'city' FROM customer 
+LEFT JOIN city ON city.id = customer.city_id;
+
+
+
+--- RIGHT JOIN ---
+SELECT * FROM customer
+RIGHT JOIN city ON city.id = customer.city_id;
+
+SELECT customer.name,
+IFNULL(city.name, 'Sin ciudad') as 'city' FROM customer 
+RIGHT JOIN city ON city.id = customer.city_id;
+
+--- CROSS JOIN ---
+SELECT * FROM customer CROSS JOIN city
+
+--- UNION ---
+
+SELECT name FROM customer
+UNION
+SELECT  'Uno mas';
+
+SELECT id, name, 'cliente' FROM customer
+UNION
+SELECT id, name, 'ciudad' FROM city;
+
+-- SELF JOIN -- (REFERRED)
+
+ALTER TABLE customer
+ADD COLUMN referred_id INT 
+
+ALTER TABLE customer
+ADD CONSTRAINT fk_referred
+FOREIGN KEY(reffered_id) REFERENCES customer(id)
+
+UPDATE customer SET referred_id = 1 WHERE id <> 1;
+
+SELECT c1.name, c2.name as "Quien te recomendo" FROM customer AS c2
+INNTER JOIN customer as c2
+ON c2.id = c1.referred_id
+
+SELECT c1.name,
+IFNULL(c2.name, "Sin referido") as "Quien te recomendo"
+FROM customer AS c1
+LEFT JOIN customer as c2
+ON c2.id = c1.referred_id
+
+
+-- FULL JOIN --
+
+SELECT * FROM customer
+LEFT JOIN city ON city.id = customer.city_id
+UNION
+SELECT * FROM customer
+RIGHT JOIN city ON city.id = customer.city_id
+
+
+--- SELECT Y CASE ---
+
+SELECT name,
+    CASE
+        WHEN currency = 'MXN' THEN 'Peso mexicano
+        WHEN currency = 'USD' THEN 'Dolar americano'
+        ELSE 'Otra moneda'
+     END as 'Moneda'
+FROM customer
+
+
+-- SUBQUERY --
+
+SELECT name, 
+    IFNULL((SELECT name FROM city
+    WHERE city.id = customer.city_id), "Sin Ciudad") as 'city'
+FROM customer;
+
+
+SELECT c.name
+FROM (SELECT nanme FROM customer 
+        WHERE city_id is NULL) as c
+ORDER BY name DESC;
+
+SELECT COUNT(*) FROM customer;
+
+SELECT name
+    (SELECT COUNT(*) FROM customer WHERE city.id = customer.city_id) as 'Cantidad'
+FROM city
+
+
+SELECT name ,
+FROM city
+WHERE (SELECT COUNT(*) FROM customer WHERE city.id = customer.city_id) > 0;
+
+
+--- LIMIT ---
+SELECT name FROM customer LIMIT 5;
+
+SELECT name FROM customer LIMIT 0,5;
+
+
+SELECT name
+FROM customer
+ORDER BY id DESC
+LIMIT 0,5;
+
+
+
+--- INSERT INTO SELECT ---
+
+INSERT INTO customer(name, email)
+SELECT name, 'email@correo.com' FROM city;
+
+--- ORDENAR ALETORIO ---
+
+SELECT RAND();
+
+SELECT id, name FROM customer ORDER BY RAND();
+
+
+--- OPERADORES AND, OR Y NOT EN WHERE ----
+
+SELECT * FROM customer WHERE LENGTH(name) > 4 AND city_id IS NULL;
+
+SELECT * FROM customer WHERE LENGTH(name) > 4 OR city_id IS NULL;
+
+SELECT * FROM customer WHERE NOT(name = 'ana');
+
+--- OPERADORES DE COMPARACION ---
+
+SELECT * FROM customer WHERE LENGTH(name) <= 4;
+SELECT * FROM customer WHERE LENGTH(name) >= 4;
+
+SELECT * FROM customer name <> 'Francisco';
+SELECT * FROM customer name != 'Francisco';
+SELECT * FROM customer > WHERE created_at > '2023-08-24';
+SELECT * FROM customer WHERE DAY(created_at) > 25;
+
+
+--- BETWEEN ---
+
+SELECT * FROM customer
+WHERE created_at BETWEEN '2023-08-24' AND '2023-08-26'
+
+SELECT * FROM customer
+WHERE created_at BETWEEN '2023-08-24 00:00:00' AND '2023-08-26 12:59:59'
+
+SELECT * FROM customer
+WHERE id BETWEEN 1 AND 5
+
+SELECT SUBSTRING(UPPER(name),1,1) FROM customer, name
+FROM customer 
+WHERE SUBSTRING(UPPER(name),1,1) BETWEEN 'A' AND 'R';
+
+-- IN --
+
+SELECT * FROM customer 
+WHERE id IN(1,2,3)
+
+SELECT * FROM customer 
+WHERE id NOT IN(1,2,3)
+
+SELECT * FROM customer 
+WHERE name  IN('ana, 'Francisco')
+
+SELECT * FROM city
+WHERE id IN( SELECT DISTINCT city_id FROM customer WHERE city_id IS NOT NULL)
+
+SELECT name,
+    CASE
+        WHEN name IN('ana', 'Francisco') THEN 'No aprobados'
+        ELSE 'Aprobados'
+    END as 'status'
+FROM customer
+
+--- ANY Y ALL ---
+ALTER TABLE customer
+ADD balance DECIMAL(8,2);
+
+
+CREATE TABLE product (
+
+id INT AUTO_INCREMENT PRIMARY KEY,
+name VARCHAR(50) NOT NULL,
+price DECIMAL(8,2)
+
+)
+
+INSERT INTO PRODUCT(name,price)
+VALUES('Cerveza', 15),
+('Papas',10),
+('Vino tinto', 20.44)
+
+
+SELECT name balance FROM customer
+WHERE balance > ANY(SELECT price FROM product); --> CUALQUIER DE LOS VALORES EN ANY
+
+SELECT name balance FROM customer
+WHERE balance > ALL(SELECT price FROM product); --> DEBES DE SUPERAR TODOS LOS VALORES
+
+
+--- LIKE ---
+
+SELECT name FROM customer
+WHERE UPPER(name) LIKE 'A%'
+
+SELECT name FROM customer
+WHERE UPPER(name) LIKE '%A'
+
+SELECT name FROM customer
+WHERE UPPER(name) LIKE '%A%'
+
+SELECT name FROM customer
+WHERE UPPER(name) LIKE '%RA%'
+
+SELECT name FROM customer
+WHERE UPPER(name) LIKE '%A%A%'
+
+SELECT name, email FROM customer
+WHERE email LIKE '%@gmail.com'
+
+SELECT name, email FROM customer
+WHERE UPPER(name) LIKE '__A%'
+
+
+--- GROUP BY ---
+
+The GROUP BY statement is often used with aggregate functions (COUNT(), MAX(), MIN(), SUM(), AVG()) to group the result-set by one or more columns.
+
+--- COUNT ---
+SELECT COUNT(*)
+FROM customer;
+
+SELECT COUNT(DISTINCT name)
+FROM customer;
+
+SELECT name, DATE(created_at) as 'Fecha',
+ COUNT(*) AS 'Cantidad'
+FROM customer
+GROUP BY name, DATE(created_at)
+
+--- HAVING ---
+
+SELECT name, COUNT(*) AS 'Cantidad'
+FROM customer
+WHERE name != 'name' ---> WHERE SE EJECUTA ANTES DE LA AGRUPACION
+GROUP BY name
+HAVING COUNT(*) > 1
+
+--- SUM Y AVG ----
+/// SUMATORIA POR FECHA
+SELECT DATE(created_at) as 'Fecha', SUM(balance)
+FROM customer
+GROUP BY DATE(create_at);
+
+
+
+SELECT DATE(created_at) as 'Fecha', AVG(balance)
+FROM customer
+GROUP BY DATE(create_at);
+
+
+SELECT DATE(created_at) as 'Fecha', AVG(balance)
+FROM customer
+GROUP BY DATE(create_at)
+HAVING AVG(balance) > 7;
+
+
+SELECT MIN(balance) FROM customer;
+SELECT MAX(balance) FROM customer;
+
+
+SELECT DATE(created_at), MIN(balance) as "Min", MAX(balance) as 'Max'
+FROM cusomter
+GROUP BY DATE(created_at);
+
+SELECT name, MIN(created_at) as "Min", MAX(created_at) as 'Max'
+FROM cusomter
+GROUP BY name;
+
+--- GROUP_CONCAT---
+
+SELECT DATE(created_at), GROUP_CONCAT(name) as 'Nombres'
+FROM customer
+GROUP BY DATE(created_at)
+
+SELECT DATE(created_at), GROUP_CONCAT(DISTINCT name) as 'Nombres'
+FROM customer
+GROUP BY DATE(created_at)
+
+SELECT DATE(created_at),  
+    GROUP_CONCAT(name SEPARATOR '|') as 'Nombres'
+FROM customer
+GROUP BY DATE(created_at)
+
+SELECT DATE(created_at),  
+    GROUP_CONCAT(name ORDER BY UPPER(name) DESC) as 'Nombres'
+FROM customer
+GROUP BY DATE(created_at)
+
+SELECT DATE(created_at),  
+    GROUP_CONCAT(name ORDER BY UPPER(name) DESC) as 'Nombres'
+FROM customer
+GROUP BY DATE(created_at)
+HAVING COUNT(*) > 2
+
+
+
+--- FUNCIONES ---
+
+DROP FUNCTION IF EXISTS Hi;
+
+DELIMITER $$
+
+$$
+CREATE FUNCTION Hi(name VARCHAR(50))
+RETURNS VARCHAR(200)
+DETERMINISTIC
+BEGIN
+    DECLARE message VARCHAR(200);
+    SET message = CONCAT('Hola ', name)
+
+    RETURN message;
+END;
+$$
+
+
+SELECT LENGHT('Hector');
+
+SELECT Hi('Hector');
+
+
+--- SENTENCIAS CONDICIONALES ---
+DELIMITER $$
+
+$$
+CREATE FUNCTION NumberDescription(number INT)
+RETURNS VARCHAR(8)
+DETERMINISTIC
+
+BEGIN
+
+    DECLARE description VARCHAR(8)
+
+    IF number < 0 THEN
+        SET description = 'Negativo';
+    ELSEIF number > 0 THEN
+        SET description ='Positivo'
+    ELSE
+        SET description = 'Cero
+    END IF;
+
+    RETURN description;
+END
+$$
+
+SELECT NumberDescription(1)
+
+
+
+--- BUCLES ---
+DROP FUNCTION IF EXIST SequenceNumbers;
+
+DELIMITER $$
+
+$$
+CREATE FUNCTION SequenceNumbers(number INT)
+RETURNS VARCHAR(200)
+DETERMINISTIC
+BEGIN
+    DECLARE i INT;
+    DECLARE sequence VARCHAR(200);
+    SET i = 0;
+    SET sequence = '';
+    WHILE i < number DO
+        SET sequence = CONCAT(sequence, i + 1, ', ');
+        SET i = i + 1;
+    END WHILE
+
+    RETURN sequence;
+END
+
+$$
+
+SELECT SequenceNumbers(100);
+
+
+--- FUNCION NO DETERMINISTA ---
+
+
+DROP FUNCTION IF EXIST Tomorrow;
+
+DELIMITER $$
+
+$$
+CREATE FUNCTION Tomorrow()
+RETURNS DATETIME
+NO DETERMINISTIC
+BEGIN
+ 
+    RETURN DATE_ADD(NOW(), INTERVAL 1 DAY);
+END
+
+$$
+SELECT Tomorrow()
+SELECT UUID();
+
+
+--- FUNCIONES Y CONSULTAS ----
+
+
+
+
+DROP FUNCTION IF EXIST QuantityCustomer;
+
+DELIMITER $$
+
+$$
+CREATE FUNCTION QuantityCustomer(INT cityID)
+RETURNS INT
+NOT DETERMINISTIC
+BEGIN
+ 
+    DECLARE quantity INT;
+
+    IF cityID IS NULL THEN
+        SELECT COUNT(*) INTO quantity
+        FROM customer
+    ELSE
+        SELECT COUNT(*) INTO quantity
+        FROM customer
+        WHERE city_id = cityID
+    END IF;
+
+    RETURN quantity;
+END;
+
+$$
+
+SELECT QuantityCustomer(1), name FROM customer;
+
+
+---STORED PROCEDURE---> StoredProcedures pueden regresar tablas
+USE store;
+DROP PROCEDURE IF EXIST CutomerWithBalance;
+
+$$
+CREATE PROCEDURE CustomerWithBalance()
+BEGIN
+    SELECT name FROM customer
+    WHERE balance > 0;
+END
+$$
+
+CALL CustomerWithBalance()
+
+
+
+
+             FUNCION               |     PROCEDURE
+-------------------------------------------------------------------------
+RETURN      1,"Dato", 2023-08-01   |  Multiples datos, tabla 
+            Trabaja con CONSULTAS  |  Trabaja con data de los BD
+            NO EFECTOS SECUNDARIOS |  SI EFECTOS SECUNDARIOS
+#RESULTS    SOLO 1                 |  MULTIPLES RESULTADOS
+SELECT      SI                     |  SOLO CALL
+
+
+
+*/
+
