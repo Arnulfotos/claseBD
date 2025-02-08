@@ -30,3 +30,18 @@ SELECT @IDCreated AS 'ID Creado';
 
 SELECT * FROM sales.orders WHERE order_id = 1616
 
+
+
+
+CREATE PROC upsCreateOrderDetails(
+	@orderID AS INT,
+	@itemID AS INT,
+	@productID AS INT,
+	@Quantity AS INT,
+	@ListPrice AS 
+
+
+)
+
+
+SELECT * FROM sales.order_items
